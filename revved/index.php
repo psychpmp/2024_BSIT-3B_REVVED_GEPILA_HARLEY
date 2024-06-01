@@ -8,7 +8,7 @@ if(isset($_GET['search'])) {
     $get_result = mysqli_query($conn, "SELECT items.*, IFNULL(AVG(reviews.rating), 0) AS avg_rating
                                         FROM items
                                         LEFT JOIN reviews ON items.item_id = reviews.item_id
-                                        WHERE items.stocks >= 0 AND items.item LIKE '%$search%'
+                                        WHERE items.stocks > 0 AND items.item LIKE '%$search%'
                                         GROUP BY items.item_id
                                         ORDER BY items.item_id DESC");
 } else {
@@ -16,7 +16,7 @@ if(isset($_GET['search'])) {
     $get_result = mysqli_query($conn, "SELECT items.*, IFNULL(AVG(reviews.rating), 0) AS avg_rating
                                         FROM items
                                         LEFT JOIN reviews ON items.item_id = reviews.item_id
-                                        WHERE items.stocks >= 0
+                                        WHERE items.stocks > 0
                                         GROUP BY items.item_id
                                         ORDER BY items.item_id DESC");
 }
@@ -33,8 +33,15 @@ if (!$lowest_price_items_query) {
     echo "Error: " . mysqli_error($conn);
     exit;
 }
+$sql = "SELECT items.*, AVG(reviews.rating) AS avg_rating 
+        FROM items 
+        LEFT JOIN reviews ON items.item_id = reviews.item_id 
+        WHERE items.stocks > 0 
+        GROUP BY items.item_id 
+        HAVING AVG(reviews.rating) = 5
+        LIMIT 5";
+$buyers_choice_result = mysqli_query($conn, $sql);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,19 +55,19 @@ body {
     background-color: #343a40;
     color: #ffffff;
     padding-top: 6px;
-    font-family: Arial, sans-serif; /* Uniform font */
+    font-family: Arial, sans-serif;
 }
 
 .btn {
     display: inline-block;
-    font-weight: bold; /* Make the text bold */
-    text-transform: uppercase; /* Convert text to all caps */
+    font-weight: bold;
+    text-transform: uppercase; 
     white-space: nowrap;
     vertical-align: middle;
     user-select: none;
-    border: none; /* Remove the border */
+    border: none; 
     padding: 0.375rem 0.75rem;
-    font-size: 1.2rem; /* Increase font size */
+    font-size: 1.2rem; 
     line-height: 1.5;
     border-radius: 0.25rem;
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
@@ -315,9 +322,36 @@ body {
 .search-button:hover {
     background-color: #0056b3;
 }
+/* Style for deactivated items */
 .item.deactivated {
     background-color: #dc3545;
+    position: relative;
 }
+
+.item.deactivated::before {
+    content: "UNAVAILABLE"; /* Text for the label */
+    color: white; /* Text color for the label */
+    padding: 4px 8px; /* Padding for the label */
+    position: absolute; /* Position the label relative to the item */
+    top: 30; /* Position at the top of the item */
+    font-family: 'Montserrat', sans-serif; /* Specify Montserrat font */
+    z-index: 1; /* Ensure the label is displayed on top */
+    text-align: center; /* Align text to the center */
+    width: calc(100% - 20px); /* Make label width equal to item width minus padding */
+    border: 2px solid white;
+    font-size: 30px;
+    text-shadow: 
+        -1px -1px 0 #000,  
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000; /* Font outline */
+    box-shadow: 
+        inset -1px -1px 0 #000,  
+        inset 1px -1px 0 #000,
+        inset -1px 1px 0 #000,
+        inset 1px 1px 0 #000; /* Border outline */
+}
+
 .stars {
     display: flex;
     justify-content: center;
@@ -331,13 +365,13 @@ body {
 }
 
 .stars .star {
-    color: #ffdd00; /* Gold color for stars */
+    color:#f39c12; /* Gold color for stars */
     font-size: 20px; /* Adjust star size */
     margin: 0 1px;
 }
 
 .stars .star.filled {
-    color: #ffdd00; /* Gold color for filled stars */
+    color: #f39c12;/* Gold color for filled stars */
 }
 .toolbar{
     background-color: #dc3545;
@@ -528,7 +562,8 @@ body {
     box-sizing: border-box; /* Ensure padding and borders are included in the element's total width and height */
 }
 .category-card:hover {
-    transform: scale(1.05);
+    transform: translateY(-20px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .category-card-title {
@@ -653,6 +688,17 @@ body {
 .list{
     color: #bbb;
 }
+.review {
+    display: inline-block;
+    margin-top: 10px;
+    color: #3498db;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.review:hover {
+    color: #2980b9;
+}
 </style>
 </head>
 <body>
@@ -669,7 +715,7 @@ body {
         </form>
     </div>
         <!-- Cart icon with count -->
-        <a href="cart.php" class="cart">
+        <a href="index.php" class="cart" id="cartLink">
             <img src="img/cart.png" alt="Cart Icon" style="width: 16px; height: 16px;">
         </a>
         <!-- Display cart count -->
@@ -709,37 +755,36 @@ body {
             <div class="d-flex justify-content-between align-items-center">
                 <!-- Carousel -->
                 <div class="carousel-container">
-    <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="2000">
-        <div class="carousel-inner">
-            <div class="carousel-item active">
-                <img src="img/1.jpg" class="d-block w-100" alt="..." style="height: 200px;">
+                <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="2000">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <img src="img/1.jpg" class="d-block w-100" alt="..." style="height: 200px;">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="img/2.jpg" class="d-block w-100" alt="..." style="height: 200px;">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="img/3.jpg" class="d-block w-100" alt="..." style="height: 200px;">
+                        </div>
+                    </div>
+                    <ol class="carousel-indicators">
+                        <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+                    </ol>
+                    <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                    <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </div>
             </div>
-            <div class="carousel-item">
-                <img src="img/2.jpg" class="d-block w-100" alt="..." style="height: 200px;">
             </div>
-            <div class="carousel-item">
-                <img src="img/3.jpg" class="d-block w-100" alt="..." style="height: 200px;">
-            </div>
-        </div>
-        <ol class="carousel-indicators">
-            <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
-            <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
-            <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
-        </ol>
-        <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="sr-only">Previous</span>
-        </a>
-        <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="sr-only">Next</span>
-        </a>
-    </div>
-</div>
-</div>
-<hr>
-<!-- Add this code inside the <body> tag, before the item container -->
-<div class="categ">shop by category</div>
+            <hr>
+<div class="categ">Shop by Category</div>
 <div class="container category-section">
     <div class="category-row">
         <div class="category-col">
@@ -772,39 +817,71 @@ body {
             </div>
         </div>
     </div>
-    </div>
-    <div class="all-items">ALL ITEMS</div>
-            <div class="item-container <?php echo mysqli_num_rows($get_result) > 0 ? 'single-item' : ''; ?>">
-                <?php while ($row = mysqli_fetch_assoc($get_result)) { ?>
-                    <div class="item <?php echo $row['item_status'] === 'D' ? 'deactivated' : ''; ?>">
-                        <img src="<?php echo $row['item_img']; ?>" alt="Item Image" class="photo">
-                        <p class="text"><?php echo htmlspecialchars($row['item']); ?></p>
-                        <div class="stars">
-    <?php
-for ($i = 1; $i <= 5; $i++) {
-    if ($i <= $row['avg_rating']) { // Change $row['rating'] to $row['avg_rating']
-        echo '<i class="fas fa-star star filled"></i>';
-    } else {
-        echo '<i class="far fa-star star"></i>';
-    }
-}
-    ?>
 </div>
-                        <p class="price">Price: ₱<?php echo $row['price']; ?></p>
-                        <?php if ($row['item_status'] !== 'D') { ?>
-                            <form action="process_add_to_cart.php" method="get" class="input-group">
-                                <input type="hidden" name="item_id" value="<?php echo $row['item_id']; ?>">
-                                <input type="number" class="form-control" name="cart_qty" min="1" max="<?php echo $row['stocks']; ?>">
-                                <input type="submit" value="Add to Cart" class="btn btn-primary">
-                            </form>
-                        <?php } ?>
-                        <p class="stock-info">Stocks: <?php echo $row['stocks']; ?></p>
-                        <a href="common_user/disp_rev.php?item_id=<?php echo $row['item_id']; ?>" class="review">Check Reviews</a>
-                    </div>
-                <?php } ?>
+
+<div class="all-items">TOP RATED ITEMS</div>
+<div class="item-container <?php echo mysqli_num_rows($buyers_choice_result) > 0 ? 'single-item' : ''; ?>">
+    <?php while ($row = mysqli_fetch_assoc($buyers_choice_result)) { ?>
+        <div class="item <?php echo $row['item_status'] === 'D' ? 'deactivated' : ''; ?>">
+            <!-- Display buyers choice items -->
+            <img src="<?php echo $row['item_img']; ?>" alt="Item Image" class="photo">
+            <p class="text"><?php echo htmlspecialchars($row['item']); ?></p>
+            <div class="stars">
+                <?php
+                for ($i = 1; $i <= 5; $i++) {
+                    if ($i <= $row['avg_rating']) { // Change $row['rating'] to $row['avg_rating']
+                        echo '<i class="fas fa-star star filled"></i>';
+                    } else {
+                        echo '<i class="far fa-star star"></i>';
+                    }
+                }
+                ?>
             </div>
+            <p class="price">Price: ₱<?php echo $row['price']; ?></p>
+            <?php if ($row['item_status'] !== 'D') { ?>
+                <form action="index.php" method="get" class="input-group">
+                    <input type="hidden" name="item_id" value="<?php echo $row['item_id']; ?>">
+                    <input type="number" class="form-control" name="cart_qty" min="1" max="<?php echo $row['stocks']; ?>">
+                    <input type="submit" value="Add to Cart" class="btn btn-primary" id="addToCartBtn">
+                </form>
+            <?php } ?>
+            <p class="stock-info">Stocks: <?php echo $row['stocks']; ?></p>
+            <a href="common_user/disp_rev.php?item_id=<?php echo $row['item_id']; ?>" class="review">Check Reviews</a>
         </div>
-    </div>
+    <?php } ?>
+</div>
+
+<div class="all-items">ALL ITEMS</div>
+<div class="item-container <?php echo mysqli_num_rows($get_result) > 0 ? 'single-item' : ''; ?>">
+    <?php while ($row = mysqli_fetch_assoc($get_result)) { ?>
+        <div class="item <?php echo $row['item_status'] === 'D' ? 'deactivated' : ''; ?>">
+            <!-- Display all items -->
+            <img src="<?php echo $row['item_img']; ?>" alt="Item Image" class="photo">
+            <p class="text"><?php echo htmlspecialchars($row['item']); ?></p>
+            <div class="stars">
+                <?php
+                for ($i = 1; $i <= 5; $i++) {
+                    if ($i <= $row['avg_rating']) { // Change $row['rating'] to $row['avg_rating']
+                        echo '<i class="fas fa-star star filled"></i>';
+                    } else {
+                        echo '<i class="far fa-star star"></i>';
+                    }
+                }
+                ?>
+            </div>
+            <p class="price">Price: ₱<?php echo $row['price']; ?></p>
+            <?php if ($row['item_status'] !== 'D') { ?>
+                <form action="index.php" method="get" class="input-group">
+                    <input type="hidden" name="item_id" value="<?php echo $row['item_id']; ?>">
+                    <input type="number" class="form-control" name="cart_qty" min="1" max="<?php echo $row['stocks']; ?>">
+                    <input type="submit" value="Add to Cart" class="btn btn-primary" id="addToCartBtn">
+                </form>
+            <?php } ?>
+            <p class="stock-info">Stocks: <?php echo $row['stocks']; ?></p>
+            <a href="common_user/disp_rev.php?item_id=<?php echo $row['item_id']; ?>" class="review">Check Reviews</a>
+        </div>
+    <?php } ?>
+</div>
 </div>
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
@@ -821,6 +898,28 @@ for ($i = 1; $i <= 5; $i++) {
         // Redirect to a page where items belonging to the selected category are displayed
         window.location.href = 'category.php?category=' + encodeURIComponent(categoryName);
     });
+});
+document.getElementById("addToCartBtn").addEventListener("click", function() {
+    // Check if user is logged in (you would need to replace this condition with your actual login check)
+    var isLoggedIn = false; // Assuming the user is not logged in
+
+    if (!isLoggedIn) {
+        // Display error message
+        alert("Please login or sign up first.");
+    } else {
+        // Redirect to index.php
+        window.location.href = "index.php";
+    }
+});
+document.getElementById("cartLink").addEventListener("click", function(event) {
+    // Check if user is logged in (you would need to replace this condition with your actual login check)
+    var isLoggedIn = false; // Assuming the user is not logged in
+
+    if (!isLoggedIn) {
+        // Display error message
+        alert("Please login or sign up first.");
+        event.preventDefault(); // Prevent the default behavior of the link
+    }
 });
 </script>
 </body>
@@ -855,8 +954,8 @@ for ($i = 1; $i <= 5; $i++) {
                         <p>Co-Founder</p>
                         <div class="social-links">
                             <a href="https://web.facebook.com/harley.gepila"><i class="fab fa-facebook-f"></i></a>
-                            <a href="#"><i class="fab fa-instagram"></i></a>
-                            <a href="mailto:michael@example.com"><i class="far fa-envelope"></i></a>
+                            <a href="https://www.instagram.com/si_harle"><i class="fab fa-instagram"></i></a>
+                            <a href="mailto:gepilaharley@gmail.com"><i class="far fa-envelope"></i></a>
                         </div>
                     </div>
                 </div>
